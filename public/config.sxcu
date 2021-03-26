@@ -3,7 +3,7 @@
       "Name": "read-my-man.ga",
       "DestinationType": "None",
       "RequestMethod": "POST",
-      "RequestURL": "https://test.read-my-man.ga/upload",
+      "RequestURL": "https://read-my-man.ga/upload",
       "Parameters": {
         "randomKey": "true"
       },
