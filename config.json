@@ -1,0 +1,7 @@
+{
+  "Cloudflare": true,
+  "BypassCooldownToken": "urpasswordhere",
+  "port": 2999,
+  "bindIP": "127.0.0.1",
+  "abuseHeaderMessage": "Hello! This is a public file server, if anything here is against the law please report it to my email on the front page. (/index.html)"
+}
