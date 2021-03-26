@@ -1,4 +1,4 @@
-const { Transform } = require('stream');
+const {Transform} = require('stream');
 
 class AppendInitVect extends Transform {
     constructor(initVect, opts) {
