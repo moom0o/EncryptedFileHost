@@ -32,12 +32,13 @@ app.use(bodyParser.urlencoded({extended: true}));
 
 setInterval(() => {
     // write bandwidth
-    fs.writeFile('bandwidth.json', {"bandwidth": bandwidth}, (err) => {
-        if (err) throw err;
-    });
+    fs.writeFileSync('./bandwidth.json', JSON.stringify({"bandwidth": bandwidth}), 'utf8');
 }, 10 * 60 * 1000)
 
 app.post('/upload', function (req, res) {
+    if (!req.files) {
+        res.status(404).send("no file sent")
+    }
     const file = req.files.file;
     let password;
     if (req.query["randomKey"]) {
