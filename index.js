@@ -77,7 +77,7 @@ app.post('/upload', function (req, res) {
     if (req.query["randomKey"]) {
         res.send(`https://${req.headers.host}/${fileName}?key=${password}`);
     } else {
-        res.send(`<a href="https://${req.headers.host}/${fileName}?key=${password}"><a href="https://${req.headers.host}/${fileName}?key=${password}</a>`);
+        res.send(`<a href="https://${req.headers.host}/${fileName}?key=${password}">https://${req.headers.host}/${fileName}?key=${password}</a>`);
     }
 })
 
@@ -85,6 +85,9 @@ app.post('/upload', function (req, res) {
 app.get('/decrypt', function (req, res) {
     const fileName = req.query.id;
     const password = req.query.key;
+    if(!password){
+        return res.status(403).end("No key specified")
+    }
     if (fs.existsSync(__dirname + "/files/" + fileName + ".enc")) {
         decrypt(fileName, password, res)
     } else {
@@ -102,6 +105,9 @@ app.get('/totalsize', function (req, res) {
 app.get('/:filename', function (req, res) {
     const fileName = req.params.filename;
     const password = req.query.key;
+    if(!password){
+        return res.status(403).end("No key specified")
+    }
     if (fs.existsSync(__dirname + "/files/" + fileName + ".enc")) {
         decrypt(fileName, password, res)
     } else {
