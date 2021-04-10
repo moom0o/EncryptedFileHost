@@ -1,68 +1,83 @@
 <html lang="en">
 <head>
-    <link rel="stylesheet" type="text/css" href="style.css">
     <title>Free Encrypted File Host</title>
+    <link rel="stylesheet" type="text/css" href="css/style.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.1/dist/umd/popper.min.js" integrity="sha384-SR1sx49pcuLnqZUnnPwx6FCym0wLsk5JZuNx2bPPENzswTNFaQU1RDvt3wT4gWFG" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.min.js" integrity="sha384-j0CNLUeiqtyaRmlzUHCPZ+Gy5fQu0dQ6eZ/xAww941Ai1SxSY+0EQqNXNE6DZiVc" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
 </head>
-<body style="text-align: center;">
-<h1>Free Encrypted File Host</h1>
-<p id="storage">Total Storage Usage: Loading...</p>
-<p id="bandwidth">Total Bandwidth Usage (Downloads): Loading...</p>
+<body style="background-color: #f1f1f1;">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+          <a class="navbar-brand" href="#">
+            <img src="https://cdn.discordapp.com/avatars/528811409404854273/40af991ffd5b8c08bccff48c15b1b27c.png" id="logo" alt="logo" width="40" height="40">
+          </a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+              <li class="nav-item">
+                <a class="nav-link active" aria-current="page" href="/">Upload</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="about.html">What's this?</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="docs.html">Documentation</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </nav>
 
-<form class="box" method="post" action="/upload" enctype="multipart/form-data">
-    <div class="box__input">
-        <label for="file"><strong>Choose a password</strong>.</label>
-        <label for="key"></label><input type="text" name="key" id="key">
-        <input class="box__file" type="file" name="file" id="file"/>
-        <label for="file"><strong>Choose a file</strong><span class="box__dragndrop"> or drag it here</span>.</label>
-        <button class="box__button" type="submit">Upload</button>
+      <div class="container column">
+        <h1>Free Encrypted File Host</h1>
+        <hr>
+        <div id="upload">
+            <h3>Upload / Download</h3>
+            <form class="box" method="post" action="/upload" enctype="multipart/form-data">
+                <div class="box__input">
+                    <label for="file"><strong>Enter Password for your encrypted file</strong>.</label>
+                    <label for="key"></label><input class="form-control" type="password" name="key" id="key" placeholder="Enter Password...">
+
+                    <strong>Choose a file</strong>
+                    
+                    <input class="box__file form-control" type="file" name="file" id="file"/>
+                    <label for="file"><span class="box__dragndrop"> or drag it here</span><label>
+                        <br>
+                    <button class="box__button btn btn-primary" type="submit">     
+                        Upload
+                    </button>
+                </div>
+                <div class="box__uploading">Uploading…</div>
+                <div class="box__success">Done!</div>
+                <div class="box__error">Error! <span></span>.</div>
+            </form>
+            <form class="box" method="get" action="/decrypt">
+                <div class="box__input">
+                    <label for="file"><strong>Password to decrypt your file</strong>.</label>
+                    <label for="key2"></label><input class="form-control" type="password" name="key" id="key2">
+                    <label for="file"><strong>Filename to decrypt (with type)</strong></label>
+                    <label for="id2"></label><input class="form-control" type="text" name="id" id="id2">
+                    <br>
+                    <button class="box__button  btn btn-primary" type="submit">Download</button>
+                </div>
+                <div class="box__uploading">Uploading…</div>
+                <div class="box__success">Done!</div>
+                <div class="box__error">Error! <span></span>.</div>
+            </form>
+            <div class="alert alert-info" role="alert">
+                <h4 class="alert-info">Statitics</h4>
+                <hr>
+                <span id="storage">Total Storage Usage: Loading...</span><br>
+                <span id="bandwidth">Total Bandwidth Usage (Downloads): Loading...</span>
+            </div>
+        </div>
     </div>
-    <div class="box__uploading">Uploading…</div>
-    <div class="box__success">Done!</div>
-    <div class="box__error">Error! <span></span>.</div>
-</form>
-<form class="box" method="get" action="/decrypt">
-    <div class="box__input">
-        <label for="file"><strong>Password to decrypt</strong>.</label>
-        <label for="key2"></label><input type="text" name="key" id="key2">
-        <label for="file"><strong>Filename to decrypt (with type)</strong></label>
-        <label for="id2"></label><input type="text" name="id" id="id2">
-        <button class="box__button" type="submit">Download</button>
-    </div>
-    <div class="box__uploading">Uploading…</div>
-    <div class="box__success">Done!</div>
-    <div class="box__error">Error! <span></span>.</div>
-</form>
-<p>What is this? This is a free (for now) encrypted file/image host. Files are encrypted with AES 256 then compressed
-    with GZIP. No one can read your files without the encryption key, not even me.
-</p>
-<p>Even if the servers were hacked no one would be able to see file contents unless AES 256 is somehow cracked in the
-    future.</p>
-<p>This is a fun project that I will try to keep free, however if it uses too much storage I may have to create
-    restrictions.</p>
-<p>Please note this service is NOT intended to be used for breaking the law. I only really made this to prevent others
-    from eavesdropping on my images/files that could contain personal information or even credit cards.</p>
-<p>This is what an encrypted image looks like:</p>
-<img src="/4WwktAN1Ik.png" alt="file">
-<h2>API</h2>
-<p>You can use this in a program such as sharex.</p>
-<p>Look below for a sharex config, you can use the request query "randomKey" for a random password, this is useful for
-    services such as discord.</p>
-<a href="/config.sxcu">/config.sxcu</a>
-<h2>Privacy</h2>
-<p>No logs are stored, your ip address is only used for ratelimiting.</p>
-<p>Files are stored in Germany</p>
-<h2>Source Code</h2>
-<p>This site is open source, you can find the code here: <a href="https://github.com/moom0o/EncryptedFileHost">https://github.com/moom0o/EncryptedFileHost</a></p>
-<h2>Abuse</h2>
-<p>Please contact moom0o A.T protonmail D0T com with the file and encryption key. Please note I cannot see any file
-    without the encryption key.</p>
-<h2>Limits?</h2>
-<p>There is a 100mb file limit and you can only upload 1 file every 15 seconds.</p>
-<h2>TOS</h2>
-<p>Nothing illegal in United States, or Germany besides that I cannot see your files thus anything legal
-    is allowed.</p>
-<p>Please do not abuse the service, such as spam uploading files.</p>
-<h5>BTC ADDRESS: 3LWoHEkXfS3AxdrQcfQzyHBZmfKQZT8RUD</h5>
+
+    
 </body>
 <script>
     let storagevariable = document.getElementById("storage");
