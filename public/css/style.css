@@ -1,3 +1,19 @@
+html, body {
+    background-color: #f1f1f1;
+}
+
+.column {
+    display: block;
+    background-color: #fff;
+    min-height: 100px;
+    padding: 20px;
+    box-shadow: rgba(0, 0, 0, 0.1) 0 1px 2px;
+}
+
+#logo {
+    border-radius: 50%;
+}
+
 .box__dragndrop,
 .box__uploading,
 .box__success,
