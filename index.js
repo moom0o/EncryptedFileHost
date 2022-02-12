@@ -1,207 +1,246 @@
-const express = require('express')
-const config = require('./config.json')
-const fs = require("fs")
-const upload = require('express-fileupload');
-const bodyParser = require('body-parser');
-const rand = require('random-id');
-const mime = require('mime-types');
-const {Readable} = require('stream');
-const path = require("path")
+const express = require("express");
+const config = require("./config.json");
+const fs = require("fs");
+const asyncfs = require("fs").promises;
+const upload = require("express-fileupload");
+const bodyParser = require("body-parser");
+const rand = require("random-id");
+const mime = require("mime-types");
+const { Readable } = require("stream");
+const path = require("path");
 
-const crypto = require('crypto');
-require('path');
-const zlib = require('zlib');
+const crypto = require("crypto");
+require("path");
+const zlib = require("zlib");
 
-const AppendInitVect = require('./appendInitVect');
+const AppendInitVect = require("./appendInitVect");
 
 let cooldown = new Set();
 let bandwidth = 0;
-fs.readFile('./bandwidth.json', 'utf8', (err, data) => {
+fs.readFile("./bandwidth.json", "utf8", (err, data) => {
     if (err) {
         console.log(err);
     } else {
         bandwidth = JSON.parse(data).bandwidth;
     }
 });
-const app = express()
+const app = express();
 
-app.use(express.static('public'))
-app.use(upload({preserveExtension: true, safeFileNames: true, limits: {fileSize: 10000000000000000000 * 1024 * 1024}}));
+app.use(express.static("public"));
+app.use(
+    upload({
+        preserveExtension: true,
+        safeFileNames: true,
+        limits: { fileSize: 10000000000000000000 * 1024 * 1024 },
+    })
+);
 app.use(express.json());
-app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.urlencoded({ extended: true }));
 
 setInterval(() => {
     // write bandwidth
-    fs.writeFileSync('./bandwidth.json', JSON.stringify({"bandwidth": bandwidth}), 'utf8');
-}, 10 * 60 * 1000)
+    fs.writeFileSync(
+        "./bandwidth.json",
+        JSON.stringify({ bandwidth: bandwidth }),
+        "utf8"
+    );
+}, 10 * 60 * 1000);
 
-app.post('/upload', function (req, res) {
+app.post("/upload", function (req, res) {
     if (!req.files) {
-        res.status(404).send("no file sent")
+        res.status(404).send("no file sent");
     }
     const file = req.files.file;
     let password;
     if (req.query["randomKey"]) {
-        password = rand(10, 'aA0');
+        password = rand(10, "aA0");
     } else {
         password = req.body.key;
     }
-    const id = rand(6, 'aA0');
+    const id = rand(6, "aA0");
     const ext = mime.extension(file.mimetype);
-    let e = ext.toLowerCase()
-    const fileName = id + '.' + ext;
+    let e = ext.toLowerCase();
+    const fileName = id + "." + ext;
     if (e.includes("htm") || e.includes("php") || e.includes("xml")) {
-        return res.status(403).send("File extension not allowed")
+        return res.status(403).send("File extension not allowed");
     }
     if (config.Cloudflare) {
-        if (cooldown.has(req.headers['x-forwarded-for']) && req.header("auth") !== config.BypassCooldownToken) {
-            return res.status(429).send("You can only upload a file every 15 seconds.")
+        if (
+            cooldown.has(req.headers["x-forwarded-for"]) &&
+            req.header("auth") !== config.BypassCooldownToken
+        ) {
+            return res
+                .status(429)
+                .send("You can only upload a file every 15 seconds.");
         } else {
-            cooldown.add(req.headers['x-forwarded-for'])
+            cooldown.add(req.headers["x-forwarded-for"]);
             setTimeout(() => {
-                cooldown.delete(req.headers['x-forwarded-for'])
-            }, 15 * 1000)
+                cooldown.delete(req.headers["x-forwarded-for"]);
+            }, 15 * 1000);
         }
     } else {
-        if (cooldown.has(req.connection.remoteAddress) && req.header("auth") !== config.BypassCooldownToken) {
-            return res.status(429).send("You can only upload a file every 15 seconds.")
+        if (
+            cooldown.has(req.connection.remoteAddress) &&
+            req.header("auth") !== config.BypassCooldownToken
+        ) {
+            return res
+                .status(429)
+                .send("You can only upload a file every 15 seconds.");
         } else {
-            cooldown.add(req.connection.remoteAddress)
+            cooldown.add(req.connection.remoteAddress);
             setTimeout(() => {
-                cooldown.delete(req.connection.remoteAddress)
-            }, 15 * 1000)
+                cooldown.delete(req.connection.remoteAddress);
+            }, 15 * 1000);
         }
     }
 
-    encrypt(file, password, fileName)
+    encrypt(file, password, fileName);
     if (req.query["randomKey"]) {
         res.send(`https://${req.headers.host}/${fileName}?key=${password}`);
     } else {
-        res.send(`<a href="https://${req.headers.host}/${fileName}?key=${password}">https://${req.headers.host}/${fileName}?key=${password}</a>`);
+        res.send(
+            `<a href="https://${req.headers.host}/${fileName}?key=${password}">https://${req.headers.host}/${fileName}?key=${password}</a>`
+        );
     }
-})
+});
 
 // legacy
-app.get('/decrypt', function (req, res) {
+app.get("/decrypt", function (req, res) {
     const fileName = req.query.id;
     const password = req.query.key;
-    if(!password){
-        return res.status(403).end("No key specified")
+    if (!password) {
+        return res.status(403).end("No key specified");
     }
     if (fs.existsSync(__dirname + "/files/" + fileName + ".enc")) {
-        decrypt(fileName, password, res)
+        decrypt(fileName, password, res);
     } else {
-        res.status(404).send("File does not exist")
+        res.status(404).send("File does not exist");
     }
-})
+});
 
-app.get('/totalsize', function (req, res) {
-    res.set('Cache-control', 'public, max-age=0').send({
-        "usage": convertBytes(getTotalSize("./files")),
-        "bandwidth": convertBytes(bandwidth)
+app.get("/totalsize", function (req, res) {
+    res.set("Cache-control", "public, max-age=0").send({
+        usage: convertBytes(getTotalSize("./files")),
+        bandwidth: convertBytes(bandwidth),
     });
-})
+});
 
-app.get('/:filename', function (req, res) {
+app.get("/:filename", function (req, res) {
     const fileName = req.params.filename;
     const password = req.query.key;
-    if(!password){
-        return res.status(403).end("No key specified")
+    if (!password) {
+        return res.status(403).end("No key specified");
     }
     if (fs.existsSync(__dirname + "/files/" + fileName + ".enc")) {
-        decrypt(fileName, password, res)
+        decrypt(fileName, password, res);
     } else {
-        res.status(404).send("File does not exist")
+        res.status(404).send("File does not exist");
     }
-})
+});
 
-app.listen(config.port, config.bindIP)
+app.listen(config.port, config.bindIP);
 
 const getAllFiles = function (dirPath, arrayOfFiles) {
-    let files = fs.readdirSync(dirPath)
+    let files = fs.readdirSync(dirPath);
 
-    arrayOfFiles = arrayOfFiles || []
+    arrayOfFiles = arrayOfFiles || [];
 
     files.forEach(function (file) {
         if (fs.statSync(dirPath + "/" + file).isDirectory()) {
-            arrayOfFiles = getAllFiles(dirPath + "/" + file, arrayOfFiles)
+            arrayOfFiles = getAllFiles(dirPath + "/" + file, arrayOfFiles);
         } else {
-            arrayOfFiles.push(path.join(__dirname, dirPath, file))
+            arrayOfFiles.push(path.join(__dirname, dirPath, file));
         }
-    })
+    });
 
-    return arrayOfFiles
-}
+    return arrayOfFiles;
+};
 
 const getTotalSize = function (directoryPath) {
-    const arrayOfFiles = getAllFiles(directoryPath)
+    const arrayOfFiles = getAllFiles(directoryPath);
 
-    let totalSize = 0
+    let totalSize = 0;
 
     arrayOfFiles.forEach(function (filePath) {
-        totalSize += fs.statSync(filePath).size
-    })
+        totalSize += fs.statSync(filePath).size;
+    });
 
-    return totalSize
-}
+    return totalSize;
+};
 
 const convertBytes = function (bytes) {
-    const sizes = ["Bytes", "KB", "MB", "GB", "TB"]
+    const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
 
     if (bytes === 0) {
-        return "n/a"
+        return "n/a";
     }
 
-    const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)))
+    const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
 
     if (i === 0) {
-        return bytes + " " + sizes[i]
+        return bytes + " " + sizes[i];
     }
 
-    return (bytes / Math.pow(1024, i)).toFixed(1) + " " + sizes[i]
-}
+    return (bytes / Math.pow(1024, i)).toFixed(1) + " " + sizes[i];
+};
 
-function encrypt(file, password, name) {
+async function encrypt(file, password, name) {
     const initVect = crypto.randomBytes(16);
 
     const CIPHER_KEY = getCipherKey(password);
 
     const readStream = Readable.from(file.data);
     const gzip = zlib.createGzip();
-    const cipher = crypto.createCipheriv('aes256', CIPHER_KEY, initVect);
+    const cipher = crypto.createCipheriv("aes256", CIPHER_KEY, initVect);
     const appendInitVect = new AppendInitVect(initVect);
-    const writeStream = fs.createWriteStream(__dirname + "/files/" + name + ".enc");
-    readStream
-        .pipe(gzip)
-        .pipe(cipher)
-        .pipe(appendInitVect)
-        .pipe(writeStream)
+    const writeStream = fs.createWriteStream(
+        __dirname + "/files/" + name + ".enc"
+    );
+    // write to file
+    readStream.pipe(gzip).pipe(cipher).pipe(appendInitVect).pipe(writeStream);
+
+    // create an hmac for integrity verification
+
+    const hmac = crypto
+        .createHmac("sha256", password)
+        .update(file.data)
+        .digest("hex");
+
+    // write hmac to a file
+    await asyncfs.writeFile(
+        __dirname + "/files/" + name + ".hmac",
+        hmac,
+        "utf8"
+    );
 }
 
-function decrypt(file, password, res) {
-    const readInitVect = fs.createReadStream(__dirname + "/files/" + file + ".enc", {end: 15});
+async function decrypt(file, password, res) {
+    const readInitVect = fs.createReadStream(
+        __dirname + "/files/" + file + ".enc",
+        { end: 15 }
+    );
 
     let initVect;
-    readInitVect.on('data', (chunk) => {
+    readInitVect.on("data", (chunk) => {
         initVect = chunk;
     });
 
-    readInitVect.on('close', () => {
+    readInitVect.on("close", () => {
         const cipherKey = getCipherKey(password);
-        const readStream = fs.createReadStream(__dirname + "/files/" + file + ".enc", {start: 16});
-        const decipher = crypto.createDecipheriv('aes256', cipherKey, initVect);
+        const readStream = fs.createReadStream(
+            __dirname + "/files/" + file + ".enc",
+            { start: 16 }
+        );
+        const decipher = crypto.createDecipheriv("aes256", cipherKey, initVect);
         const unzip = zlib.createUnzip();
         const writeStream = fs.createWriteStream(__dirname + "/files/" + file);
 
-        let pipeshit = readStream
-            .pipe(decipher)
-            .pipe(unzip)
-            .pipe(writeStream);
-        unzip.on('error', function (err) {
-            res.status(500).send("Failed to decompress, probably wrong key?")
+        let pipeshit = readStream.pipe(decipher).pipe(unzip).pipe(writeStream);
+        unzip.on("error", function (err) {
+            res.status(500).send("Failed to decompress, probably wrong key?");
             res.end(err);
-            fs.unlinkSync(__dirname + "/files/" + file)
-        })
+            fs.unlinkSync(__dirname + "/files/" + file);
+        });
         pipeshit.on("finish", () => {
             fs.stat(__dirname + "/files/" + file, (err, stats) => {
                 if (err) {
@@ -210,21 +249,44 @@ function decrypt(file, password, res) {
                     bandwidth = bandwidth + stats.size;
                 }
             });
-            res.header("abuse", config.abuseHeaderMessage).sendFile(__dirname + "/files/" + file, function (error) {
-                if (error) {
-                    console.log(error)
-                    res.status(500).end("Error!")
-                }
-                fs.unlinkSync(__dirname + "/files/" + file)
-            })
-        })
 
+            // verify hmac
+            const hmac = crypto
+                .createHmac("sha256", password)
+                .update(fs.readFileSync(__dirname + "/files/" + file))
+                .digest("hex");
+
+            const fsHmac = fs.readFileSync(
+                __dirname + "/files/" + file + ".hmac",
+                "utf8"
+            );
+
+            // check to see if the computed hmac is the same as the one on fs
+            if (hmac !== fsHmac) {
+                // tell the user that the file is corrupted or tampered
+                res.status(500).send(
+                    "HMAC Mismatch: File is corrupted or tampered"
+                );
+                return;
+            }
+
+            // send decrypted file back to client
+            res.header("abuse", config.abuseHeaderMessage).sendFile(
+                __dirname + "/files/" + file,
+                function (error) {
+                    if (error) {
+                        console.log(error);
+                        res.status(500).end("Error!");
+                    }
+                    fs.unlinkSync(__dirname + "/files/" + file);
+                }
+            );
+        });
     });
 }
 
 function getCipherKey(password) {
-    return crypto.createHash('sha256').update(password).digest();
+    return crypto.createHash("sha256").update(password).digest();
 }
 
-process.on('uncaughtException', function (err) {
-});
+process.on("uncaughtException", function (err) {});

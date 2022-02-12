@@ -1,2 +1,5 @@
 # Project exclude paths
 /node_modules/
+files/
+bandwidth.json
+config.json
